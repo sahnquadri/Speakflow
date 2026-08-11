@@ -925,6 +925,5 @@ export default function SpeakFlow() {
   SpeakFlow v1.1 · Natural pause capture · Progress saved on this device
 </footer>
 </main>
-);
+  );
 }
-              
