@@ -24,71 +24,13 @@ function load(): SessionState {
 
   try {
     return (
-      JSON.parse(localStorage.getItem("speakflow-state") || "") ||
-      initialState
+      JSON.parse(
+        localStorage.getItem("speakflow-state") || ""
+      ) || initialState
     );
   } catch {
     return initialState;
   }
-}
-
-/*
- * Add new speech to the existing transcript without duplicating
- * words that mobile Chrome may send again after a recognition restart.
- */
-function appendWithoutDuplicate(existing: string, incoming: string): string {
-  const oldText = existing.trim();
-  const newText = incoming.trim();
-
-  if (!newText) return oldText;
-  if (!oldText) return newText;
-
-  const oldWords = oldText.split(/\s+/);
-  const newWords = newText.split(/\s+/);
-
-  const normalize = (word: string) =>
-    word
-      .toLowerCase()
-      .replace(/[.,!?;:"'()[\]{}]/g, "")
-      .trim();
-
-  const oldNormalized = oldWords.map(normalize);
-  const newNormalized = newWords.map(normalize);
-
-  /*
-   * If the incoming result is already contained at the end
-   * of the existing transcript, ignore it.
-   */
-  const incomingLower = newNormalized.join(" ");
-  const existingLower = oldNormalized.join(" ");
-
-  if (existingLower === incomingLower) {
-    return oldText;
-  }
-
-  if (
-    incomingLower.length > 10 &&
-    existingLower.includes(incomingLower)
-  ) {
-    return oldText;
-  }
-
-  /*
-   * Find the largest overlap between the end of the old transcript
-   * and the beginning of the new transcript.
-   */
-  const maxOverlap = Math.min(oldWords.length, newWords.length, 30);
-
-  for (let size = maxOverlap; size >= 1; size--) {
-    const oldPart = oldNormalized.slice(-size);
-    const newPart = newNormalized.slice(0, size);
-
-    if (oldPart.join(" ") === newPart.join(" ")) {
-      return `${oldText} ${newWords.slice(size).join(" ")}`.trim();
-    }
-  }
-
-  return `${oldText} ${newText}`.trim();
 }
 
 function analyze(text: string, state: SessionState) {
@@ -96,15 +38,20 @@ function analyze(text: string, state: SessionState) {
   const lower = text.toLowerCase();
 
   const fillers =
-    (lower.match(/\b(like|actually|yeah|you know|so)\b/g) || []).length;
+    (lower.match(/\b(like|actually|yeah|you know|so)\b/g) || [])
+      .length;
 
   const self =
-    (lower.match(
-      /\b(not .{0,18} but|i mean|what i mean|sorry|rather)\b/g
-    ) || []).length;
+    (
+      lower.match(
+        /\b(not .{0,18} but|i mean|what i mean|sorry|rather)\b/g
+      ) || []
+    ).length;
 
   const used = state.vocabulary.filter((v) =>
-    lower.includes(v.phrase.toLowerCase().replace("...", ""))
+    lower.includes(
+      v.phrase.toLowerCase().replace("...", "")
+    )
   );
 
   return {
@@ -112,10 +59,16 @@ function analyze(text: string, state: SessionState) {
     fillers,
     self,
     used,
+
     continuity: Math.min(
       95,
-      Math.round(55 + Math.min(words.length, 100) * 0.3 - fillers * 2)
+      Math.round(
+        55 +
+          Math.min(words.length, 100) * 0.3 -
+          fillers * 2
+      )
     ),
+
     organization: Math.min(
       95,
       Math.round(
@@ -127,52 +80,77 @@ function analyze(text: string, state: SessionState) {
             : 0)
       )
     ),
-    naturalness: Math.min(95, Math.round(62 - fillers * 3 + self * 4)),
+
+    naturalness: Math.min(
+      95,
+      Math.round(62 - fillers * 3 + self * 4)
+    ),
   };
 }
 
 export default function SpeakFlow() {
-  const [state, setState] = useState<SessionState>(load);
-  const [task, setTask] = useState(() => nextTask(load().level));
-  const [target, setTarget] = useState<VocabularyItem[]>([]);
-  const [transcript, setTranscript] = useState("");
-  const [feedback, setFeedback] = useState<string[]>([]);
-  const [listening, setListening] = useState(false);
-  const [reconnecting, setReconnecting] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [tab, setTab] = useState<
-    "session" | "progress" | "vocab"
-  >("session");
+  const [state, setState] =
+    useState<SessionState>(load);
 
-  const rec = useRef<Rec | null>(null);
+  const [task, setTask] =
+    useState(() => nextTask(load().level));
 
-  const finalTranscript = useRef("");
-  const interimTranscript = useRef("");
+  const [target, setTarget] =
+    useState<VocabularyItem[]>([]);
 
-  const stopping = useRef(false);
-  const sessionStartedAt = useRef(0);
+  const [transcript, setTranscript] =
+    useState("");
 
-  const restartTimer = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  const [feedback, setFeedback] =
+    useState<string[]>([]);
 
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [listening, setListening] =
+    useState(false);
 
-  /*
-   * Every recognition instance gets its own ID.
-   * This prevents an old recognition instance from modifying
-   * the transcript after a new instance has started.
-   */
-  const recognitionId = useRef(0);
+  const [reconnecting, setReconnecting] =
+    useState(false);
 
-  /*
-   * Remember final phrases already accepted during the current
-   * speaking session.
-   */
-  const acceptedResults = useRef<string[]>([]);
+  const [seconds, setSeconds] =
+    useState(0);
+
+  const [tab, setTab] =
+    useState<"session" | "progress" | "vocab">(
+      "session"
+    );
+
+  const rec =
+    useRef<Rec | null>(null);
+
+  const finalTranscript =
+    useRef("");
+
+  const interimTranscript =
+    useRef("");
+
+  const stopping =
+    useRef(false);
+
+  const sessionStartedAt =
+    useRef(0);
+
+  const restartTimer =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+  const timer =
+    useRef<ReturnType<typeof setInterval> | null>(
+      null
+    );
+
+  const recognitionRun =
+    useRef(0);
 
   useEffect(() => {
-    localStorage.setItem("speakflow-state", JSON.stringify(state));
+    localStorage.setItem(
+      "speakflow-state",
+      JSON.stringify(state)
+    );
   }, [state]);
 
   useEffect(() => {
@@ -187,7 +165,9 @@ export default function SpeakFlow() {
         clearInterval(timer.current);
       }
 
-      rec.current?.stop();
+      try {
+        rec.current?.stop();
+      } catch {}
     };
   }, []);
 
@@ -206,110 +186,159 @@ export default function SpeakFlow() {
 
     window.speechSynthesis.cancel();
 
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.92;
-    u.lang = "en-US";
+    const utterance =
+      new SpeechSynthesisUtterance(text);
 
-    window.speechSynthesis.speak(u);
+    utterance.rate = 0.92;
+    utterance.lang = "en-US";
+
+    window.speechSynthesis.speak(utterance);
   };
 
   const renderTranscript = () => {
     const combined =
-      `${finalTranscript.current} ${interimTranscript.current}`.trim();
+      `${finalTranscript.current} ${interimTranscript.current}`
+        .trim();
 
     setTranscript(combined);
   };
 
-  const startRecognition = () => {
-    if (!supported || stopping.current) return;
+  /*
+   * Mobile Chrome can repeat the tail of a previous
+   * recognition session when recognition restarts.
+   * This merges overlapping segments instead of
+   * duplicating them.
+   */
+  const appendFinalSegment = (
+    existing: string,
+    incoming: string
+  ) => {
+    const next =
+      incoming.replace(/\s+/g, " ").trim();
 
-    const C =
+    if (!next) return existing;
+
+    const old =
+      existing.replace(/\s+/g, " ").trim();
+
+    if (!old) return next;
+
+    const oldLower = old.toLowerCase();
+    const nextLower = next.toLowerCase();
+
+    if (
+      oldLower === nextLower ||
+      oldLower.includes(nextLower)
+    ) {
+      return old;
+    }
+
+    const oldWords = old.split(" ");
+    const newWords = next.split(" ");
+
+    const max = Math.min(
+      oldWords.length,
+      newWords.length
+    );
+
+    for (
+      let size = max;
+      size >= 1;
+      size--
+    ) {
+      const tail = oldWords
+        .slice(-size)
+        .join(" ")
+        .toLowerCase();
+
+      const head = newWords
+        .slice(0, size)
+        .join(" ")
+        .toLowerCase();
+
+      if (tail === head) {
+        return `${old} ${newWords
+          .slice(size)
+          .join(" ")}`
+          .trim();
+      }
+    }
+
+    return `${old} ${next}`.trim();
+  };
+
+  const startRecognition = () => {
+    if (
+      !supported ||
+      stopping.current
+    ) {
+      return;
+    }
+
+    const Recognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
-    if (!C) return;
+    if (!Recognition) return;
 
-    const currentId = ++recognitionId.current;
+    const recognition: Rec =
+      new Recognition();
 
-    const r: Rec = new C();
+    const runId =
+      ++recognitionRun.current;
 
-    r.lang = "en-US";
-    r.continuous = true;
-    r.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-    r.onresult = (e: any) => {
-      /*
-       * Ignore results from an old recognition instance.
-       */
-      if (currentId !== recognitionId.current) {
+    recognition.onresult = (
+      event: any
+    ) => {
+      if (
+        runId !==
+          recognitionRun.current ||
+        stopping.current
+      ) {
         return;
       }
 
       let interim = "";
 
       for (
-        let i = e.resultIndex;
-        i < e.results.length;
+        let i = event.resultIndex;
+        i < event.results.length;
         i++
       ) {
-        const result = e.results[i];
+        const result =
+          event.results[i];
 
         const text =
-          result?.[0]?.transcript?.trim() || "";
-
-        if (!text) continue;
+          result?.[0]?.transcript || "";
 
         if (result.isFinal) {
-          const normalized = text
-            .toLowerCase()
-            .replace(/\s+/g, " ")
-            .trim();
-
-          /*
-           * Ignore exact duplicate final results.
-           */
-          if (
-            normalized &&
-            acceptedResults.current.includes(normalized)
-          ) {
-            continue;
-          }
-
-          acceptedResults.current.push(normalized);
-
-          /*
-           * Prevent overlap between the old transcript and
-           * the newly returned speech.
-           */
           finalTranscript.current =
-            appendWithoutDuplicate(
+            appendFinalSegment(
               finalTranscript.current,
               text
             );
-
-          /*
-           * Keep memory from growing unnecessarily.
-           */
-          if (acceptedResults.current.length > 100) {
-            acceptedResults.current =
-              acceptedResults.current.slice(-60);
-          }
         } else {
           interim += text;
         }
       }
 
-      interimTranscript.current = interim;
+      interimTranscript.current =
+        interim
+          .replace(/\s+/g, " ")
+          .trim();
 
       renderTranscript();
     };
 
-    r.onend = () => {
-      /*
-       * Ignore an old recognition instance ending after
-       * a newer instance has already started.
-       */
-      if (currentId !== recognitionId.current) {
+    recognition.onend = () => {
+      if (
+        runId !==
+        recognitionRun.current
+      ) {
         return;
       }
 
@@ -320,7 +349,8 @@ export default function SpeakFlow() {
       }
 
       const elapsed =
-        Date.now() - sessionStartedAt.current;
+        Date.now() -
+        sessionStartedAt.current;
 
       if (elapsed >= 90000) {
         stopping.current = true;
@@ -329,42 +359,50 @@ export default function SpeakFlow() {
         setListening(false);
         setSeconds(90);
 
-        interimTranscript.current = "";
+        interimTranscript.current =
+          "";
 
         renderTranscript();
 
         return;
       }
 
-      /*
-       * Mobile Chrome often ends recognition after a pause.
-       * Restart it automatically so the user can continue speaking.
-       */
       setReconnecting(true);
 
       if (restartTimer.current) {
-        clearTimeout(restartTimer.current);
+        clearTimeout(
+          restartTimer.current
+        );
       }
 
-      restartTimer.current = setTimeout(() => {
-        if (!stopping.current) {
-          setReconnecting(false);
-          startRecognition();
-        }
-      }, 400);
+      restartTimer.current =
+        setTimeout(() => {
+          if (
+            !stopping.current &&
+            runId ===
+              recognitionRun.current
+          ) {
+            setReconnecting(false);
+            startRecognition();
+          }
+        }, 400);
     };
 
-    r.onerror = (e: any) => {
-      /*
-       * Ignore errors from old recognition instances.
-       */
-      if (currentId !== recognitionId.current) {
+    recognition.onerror = (
+      event: any
+    ) => {
+      if (
+        runId !==
+        recognitionRun.current
+      ) {
         return;
       }
 
       const fatal =
-        e?.error === "not-allowed" ||
-        e?.error === "service-not-allowed";
+        event?.error ===
+          "not-allowed" ||
+        event?.error ===
+          "service-not-allowed";
 
       if (fatal) {
         stopping.current = true;
@@ -374,49 +412,54 @@ export default function SpeakFlow() {
       }
     };
 
-    rec.current = r;
+    rec.current = recognition;
 
     try {
-      r.start();
+      recognition.start();
       setListening(true);
-    } catch {
-      /*
-       * Browser may reject a rapid restart.
-       * onend will normally start the next cycle.
-       */
-    }
+    } catch {}
   };
 
   const start = () => {
-    if (!supported || listening) return;
+    if (
+      !supported ||
+      listening
+    ) {
+      return;
+    }
 
     stopping.current = false;
 
     finalTranscript.current = "";
     interimTranscript.current = "";
 
-    acceptedResults.current = [];
-
     setTranscript("");
     setSeconds(0);
 
-    sessionStartedAt.current = Date.now();
+    sessionStartedAt.current =
+      Date.now();
 
     if (timer.current) {
       clearInterval(timer.current);
     }
 
-    timer.current = setInterval(() => {
-      const elapsed = Math.floor(
-        (Date.now() - sessionStartedAt.current) / 1000
-      );
+    timer.current =
+      setInterval(() => {
+        const elapsed =
+          Math.floor(
+            (Date.now() -
+              sessionStartedAt.current) /
+              1000
+          );
 
-      setSeconds(Math.min(elapsed, 90));
+        setSeconds(
+          Math.min(elapsed, 90)
+        );
 
-      if (elapsed >= 90) {
-        stop();
-      }
-    }, 500);
+        if (elapsed >= 90) {
+          stop();
+        }
+      }, 500);
 
     startRecognition();
   };
@@ -424,23 +467,21 @@ export default function SpeakFlow() {
   const stop = () => {
     stopping.current = true;
 
-    recognitionId.current += 1;
+    recognitionRun.current += 1;
 
     if (restartTimer.current) {
-      clearTimeout(restartTimer.current);
-      restartTimer.current = null;
+      clearTimeout(
+        restartTimer.current
+      );
     }
 
     if (timer.current) {
       clearInterval(timer.current);
-      timer.current = null;
     }
 
     try {
       rec.current?.stop();
-    } catch {
-      // Ignore browser stop errors.
-    }
+    } catch {}
 
     interimTranscript.current = "";
 
@@ -452,21 +493,24 @@ export default function SpeakFlow() {
 
   const begin = () => {
     setFeedback([]);
-
     setTranscript("");
 
     finalTranscript.current = "";
     interimTranscript.current = "";
 
-    acceptedResults.current = [];
-
     setTarget(
       [
         ...state.vocabulary.filter(
-          (v) => v.status !== "mastered"
+          (v) =>
+            v.status !==
+            "mastered"
         ),
       ]
-        .sort(() => Math.random() - 0.5)
+        .sort(
+          () =>
+            Math.random() -
+            0.5
+        )
         .slice(0, 3)
     );
 
@@ -481,35 +525,44 @@ export default function SpeakFlow() {
     }
 
     const answer =
-      `${finalTranscript.current} ${interimTranscript.current}`.trim() ||
+      `${finalTranscript.current} ${interimTranscript.current}`
+        .trim() ||
       transcript.trim();
 
     if (!answer) return;
 
-    const a = analyze(answer, state);
+    const analysis =
+      analyze(answer, state);
 
-    const vocab = state.vocabulary.map((v) => {
-      const hit = a.used.some(
-        (u) =>
-          u.phrase
-            .toLowerCase()
-            .replace("...", "") ===
-          v.phrase
-            .toLowerCase()
-            .replace("...", "")
+    const vocabulary =
+      state.vocabulary.map(
+        (v) => {
+          const hit =
+            analysis.used.some(
+              (u) =>
+                u.phrase
+                  .toLowerCase()
+                  .replace("...", "") ===
+                v.phrase
+                  .toLowerCase()
+                  .replace("...", "")
+            );
+
+          if (!hit) return v;
+
+          const uses =
+            v.uses + 1;
+
+          return {
+            ...v,
+            uses,
+            status:
+              uses >= 3
+                ? "mastered"
+                : "used",
+          } as VocabularyItem;
+        }
       );
-
-      if (!hit) return v;
-
-      const uses = v.uses + 1;
-
-      return {
-        ...v,
-        uses,
-        status:
-          uses >= 3 ? "mastered" : "used",
-      } as VocabularyItem;
-    });
 
     const xp =
       state.xp +
@@ -517,93 +570,121 @@ export default function SpeakFlow() {
         8,
         Math.min(
           25,
-          Math.round(a.words.length / 3)
+          Math.round(
+            analysis.words.length /
+              3
+          )
         )
       );
 
     const level =
       xp >= state.level * 40
-        ? Math.min(10, state.level + 1)
+        ? Math.min(
+            10,
+            state.level + 1
+          )
         : state.level;
 
-    const ns = {
+    const newState = {
       ...state,
 
       level,
       xp,
 
-      completed: state.completed + 1,
+      completed:
+        state.completed + 1,
 
       skills: {
         ...state.skills,
 
-        continuity: Math.round(
-          (state.skills.continuity +
-            a.continuity) /
-            2
-        ),
+        continuity:
+          Math.round(
+            (state.skills
+              .continuity +
+              analysis.continuity) /
+              2
+          ),
 
-        organization: Math.round(
-          (state.skills.organization +
-            a.organization) /
-            2
-        ),
+        organization:
+          Math.round(
+            (state.skills
+              .organization +
+              analysis.organization) /
+              2
+          ),
 
-        naturalness: Math.round(
-          (state.skills.naturalness +
-            a.naturalness) /
-            2
-        ),
+        naturalness:
+          Math.round(
+            (state.skills
+              .naturalness +
+              analysis.naturalness) /
+              2
+          ),
 
-        vocabulary: Math.min(
-          95,
-          state.skills.vocabulary +
-            a.used.length * 3
-        ),
+        vocabulary:
+          Math.min(
+            95,
+            state.skills
+              .vocabulary +
+              analysis.used.length *
+                3
+          ),
       },
 
-      vocabulary: vocab,
+      vocabulary,
     };
 
-    setState(ns);
+    setState(newState);
 
-    const fb: string[] = [];
+    const feedbackItems: string[] =
+      [];
 
-    fb.push(
-      a.words.length < 35
+    feedbackItems.push(
+      analysis.words.length < 35
         ? "Develop the idea a little further before finishing."
-        : "Good continuity - you kept the thought moving."
+        : "Good continuity. You kept the thought moving."
     );
 
-    fb.push(
-      a.fillers >= 4
+    feedbackItems.push(
+      analysis.fillers >= 4
         ? "Replace some repeated fillers with a short silent pause."
         : "Filler use was manageable."
     );
 
-    if (a.self > 0) {
-      fb.push(
-        "Good self-repair - you kept communicating instead of freezing."
+    if (analysis.self > 0) {
+      feedbackItems.push(
+        "Good self-repair. You kept communicating instead of freezing."
       );
     }
 
-    fb.push(
-      a.used.length
-        ? `You activated ${a.used.length} target expression${
-            a.used.length > 1 ? "s" : ""
+    feedbackItems.push(
+      analysis.used.length
+        ? `You activated ${analysis.used.length} target expression${
+            analysis.used.length >
+            1
+              ? "s"
+              : ""
           }.`
         : "Try to activate one target expression next time."
     );
 
-    setFeedback(fb);
+    setFeedback(
+      feedbackItems
+    );
 
-    setTask(nextTask(level));
+    setTask(
+      nextTask(level)
+    );
+
     setTarget([]);
 
     setTranscript(answer);
 
-    finalTranscript.current = answer;
-    interimTranscript.current = "";
+    finalTranscript.current =
+      answer;
+
+    interimTranscript.current =
+      "";
   };
 
   const progress = useMemo(
@@ -611,7 +692,9 @@ export default function SpeakFlow() {
       Math.min(
         100,
         Math.round(
-          ((state.xp % 40) / 40) * 100
+          ((state.xp % 40) /
+            40) *
+            100
         )
       ),
     [state.xp]
@@ -619,6 +702,7 @@ export default function SpeakFlow() {
 
   return (
     <main className="shell">
+
       <header className="top">
         <div>
           <div className="logo">
@@ -636,38 +720,62 @@ export default function SpeakFlow() {
       </header>
 
       <nav>
-        {(
-          [
-            ["session", "Session"],
-            ["progress", "Progress"],
-            ["vocab", "Vocabulary"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            className={
-              tab === id ? "active" : ""
-            }
-            onClick={() =>
-              setTab(id)
-            }
-            key={id}
-          >
-            {label}
-          </button>
-        ))}
+        <button
+          className={
+            tab === "session"
+              ? "active"
+              : ""
+          }
+          onClick={() =>
+            setTab("session")
+          }
+        >
+          Session
+        </button>
+
+        <button
+          className={
+            tab === "progress"
+              ? "active"
+              : ""
+          }
+          onClick={() =>
+            setTab("progress")
+          }
+        >
+          Progress
+        </button>
+
+        <button
+          className={
+            tab === "vocab"
+              ? "active"
+              : ""
+          }
+          onClick={() =>
+            setTab("vocab")
+          }
+        >
+          Vocabulary
+        </button>
       </nav>
 
       {tab === "session" && (
         <section className="content">
+
           <div className="hero">
             <small>
               LEVEL {state.level} -{" "}
               {task.mode.toUpperCase()}
             </small>
 
-            <h1>{task.title}</h1>
+            <h1>
+              {task.title}
+            </h1>
 
-            <p>{task.prompt}</p>
+            <p>
+              {task.prompt}
+            </p>
 
             <button
               className="hear"
@@ -680,7 +788,9 @@ export default function SpeakFlow() {
           </div>
 
           <div className="card">
-            <b>Active vocabulary</b>
+            <b>
+              Active vocabulary
+            </b>
 
             <span className="muted">
               Use 1-2 naturally
@@ -714,17 +824,25 @@ export default function SpeakFlow() {
           </div>
 
           <div className="card">
+
             <div className="microw">
+
               <button
                 className={
                   "mic " +
-                  (listening ? "rec" : "")
+                  (listening
+                    ? "rec"
+                    : "")
                 }
                 onClick={
-                  listening ? stop : start
+                  listening
+                    ? stop
+                    : start
                 }
               >
-                {listening ? "STOP" : "MIC"}
+                {listening
+                  ? "STOP"
+                  : "MIC"}
               </button>
 
               <div>
@@ -744,6 +862,7 @@ export default function SpeakFlow() {
                     : "Use Chrome or Edge for voice recognition."}
                 </span>
               </div>
+
             </div>
 
             <div className="transcript">
@@ -752,6 +871,7 @@ export default function SpeakFlow() {
             </div>
 
             <div className="actions">
+
               <button
                 onClick={begin}
                 className="secondary"
@@ -769,20 +889,24 @@ export default function SpeakFlow() {
               >
                 Finish answer
               </button>
+
             </div>
           </div>
 
           {feedback.length > 0 && (
             <div className="feedback">
+
               <small>
                 TARGETED FEEDBACK
               </small>
 
-              {feedback.map((x, i) => (
-                <p key={i}>
-                  - {x}
-                </p>
-              ))}
+              {feedback.map(
+                (item, index) => (
+                  <p key={index}>
+                    - {item}
+                  </p>
+                )
+              )}
 
               <button
                 onClick={begin}
@@ -790,45 +914,62 @@ export default function SpeakFlow() {
               >
                 Next speaking task
               </button>
+
             </div>
           )}
 
           <div className="card rule">
-            <b>How it works</b>
+            <b>
+              How it works
+            </b>
 
             <span>
-              Expose - Speak - Diagnose - Retry -
-              Vary - Retrieve - Progress
+              Expose - Speak - Diagnose -
+              Retry - Vary - Retrieve -
+              Progress
             </span>
           </div>
+
         </section>
       )}
 
       {tab === "progress" && (
         <section className="content">
+
           <div className="hero">
             <small>
               YOUR TRAINING MAP
             </small>
 
-            <h1>Progress</h1>
+            <h1>
+              Progress
+            </h1>
 
             <p>
-              The goal is not perfect English.
-              The goal is automatic, confident
-              communication.
+              The goal is not perfect
+              English. The goal is automatic,
+              confident communication.
             </p>
           </div>
 
           <div className="stats">
+
             <div>
-              <b>{state.completed}</b>
-              <small>Sessions</small>
+              <b>
+                {state.completed}
+              </b>
+              <small>
+                Sessions
+              </small>
             </div>
 
             <div>
-              <b>{state.level}</b>
-              <small>Level</small>
+              <b>
+                {state.level}
+              </b>
+              <small>
+                Level
+              </small>
             </div>
 
             <div>
@@ -841,89 +982,113 @@ export default function SpeakFlow() {
                   ).length
                 }
               </b>
-
-              <small>Mastered</small>
+              <small>
+                Mastered
+              </small>
             </div>
+
           </div>
 
           <div className="card">
+
             {Object.entries(
               state.skills
-            ).map(([k, v]) => (
-              <div
-                className="metric"
-                key={k}
-              >
-                <div>
-                  <b>
-                    {k.replace(
-                      /([A-Z])/g,
-                      " $1"
-                    )}
-                  </b>
+            ).map(
+              ([key, value]) => (
+                <div
+                  className="metric"
+                  key={key}
+                >
 
-                  <span>{v}%</span>
-                </div>
+                  <div>
+                    <b>
+                      {key.replace(
+                        /([A-Z])/g,
+                        " $1"
+                      )}
+                    </b>
 
-                <div className="bar">
-                  <i
-                    style={{
-                      width: `${v}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+                    <span>
+                      {value}%
+                    </span>
+                  </div>
 
-            <div className="metric">
-              <div>
-                <b>
-                  Level progress
-                </b>
-
-                <span>
-                  {progress}%
-                </span>
+                  <div className="bar">
+                    <i
+                      style={{
+                    width: `${progress}%`,
+                  }}
+                />
               </div>
 
-              <div className="bar">
-  <i style={{ width: `${progress}%` }} />
-</div>
-</div>
-</div>
-</section>}
+            </div>
 
-{tab === "vocab" && (
-  <section className="content">
-    <div className="hero">
-      <small>ACTIVE VOCABULARY</small>
-      <h1>Words you can actually use</h1>
-      <p>
-        Exposure alone isn’t mastery. Retrieve expressions later and use them
-        in new situations.
-      </p>
-    </div>
-
-    <div className="card list">
-      {state.vocabulary.map((v) => (
-        <div className="vrow" key={v.phrase}>
-          <div>
-            <b>{v.phrase}</b>
-            <p>{v.meaning}</p>
-            <small>{v.example}</small>
           </div>
-          <em>
-            {v.status} · {v.uses}
-          </em>
-        </div>
-      ))}
-    </div>
-  </section>
-)}
 
-<footer>
-  SpeakFlow v1.1 · Natural pause capture · Progress saved on this device
-</footer>
-</main>
+        </section>
+      )}
+
+      {tab === "vocab" && (
+        <section className="content">
+
+          <div className="hero">
+            <small>
+              ACTIVE VOCABULARY
+            </small>
+
+            <h1>
+              Words you can actually use
+            </h1>
+
+            <p>
+              Exposure alone is not mastery.
+              Retrieve expressions later and
+              use them in new situations.
+            </p>
+          </div>
+
+          <div className="card list">
+
+            {state.vocabulary.map(
+              (v) => (
+                <div
+                  className="vrow"
+                  key={v.phrase}
+                >
+
+                  <div>
+                    <b>
+                      {v.phrase}
+                    </b>
+
+                    <p>
+                      {v.meaning}
+                    </p>
+
+                    <small>
+                      {v.example}
+                    </small>
+                  </div>
+
+                  <em>
+                    {v.status} - {v.uses}
+                  </em>
+
+                </div>
+              )
+            )}
+
+          </div>
+
+        </section>
+      )}
+
+      <footer>
+        SpeakFlow v1.2 - Natural pause
+        capture - Progress saved on
+        this device
+      </footer>
+
+    </main>
   );
 }
