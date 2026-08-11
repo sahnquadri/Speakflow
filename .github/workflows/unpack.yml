@@ -34,10 +34,11 @@ jobs:
           rm -f SpeakFlow-v1.1-natural-pause.zip
           rm -rf /tmp/speakflow
 
-      - name: Commit updated project
+            - name: Commit updated project
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Update SpeakFlow to v1.1 natural pause" || echo "Nothing to commit"
-          git push
+          git pull --rebase origin main
+          git push origin main
