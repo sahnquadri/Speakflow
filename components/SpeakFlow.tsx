@@ -989,41 +989,59 @@ export default function SpeakFlow() {
 
           </div>
 
-          <div className="card">
+  <div className="card">
 
-            {Object.entries(
-              state.skills
-            ).map(
-              ([key, value]) => (
-                <div
-                  className="metric"
-                  key={key}
-                >
+  {Object.entries(state.skills).map(
+    ([key, value]) => (
+      <div
+        className="metric"
+        key={key}
+      >
+        <div>
+          <b>
+            {key.replace(
+              /([A-Z])/g,
+              " $1"
+            )}
+          </b>
 
-                  <div>
-                    <b>
-                      {key.replace(
-                        /([A-Z])/g,
-                        " $1"
-                      )}
-                    </b>
+          <span>
+            {value}%
+          </span>
+        </div>
 
-                    <span>
-                      {value}%
-                    </span>
-                  </div>
+        <div className="bar">
+          <i
+            style={{
+              width: `${value}%`,
+            }}
+          />
+        </div>
+      </div>
+    )
+  )}
 
-                  <div className="bar">
-                    <i
-                      style={{
-                    width: `${progress}%`,
-                  }}
-                />
-              </div>
+  <div className="metric">
+    <div>
+      <b>
+        Level progress
+      </b>
 
-            </div>
+      <span>
+        {progress}%
+      </span>
+    </div>
 
-          </div>
+    <div className="bar">
+      <i
+        style={{
+          width: `${progress}%`,
+        }}
+      />
+    </div>
+  </div>
+
+</div>
 
         </section>
       )}
