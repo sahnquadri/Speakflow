@@ -13,18 +13,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract project
+      - name: Replace project with latest version
         run: |
-          mkdir -p /tmp/speakflow
-          unzip -o SpeakFlow-v1-complete.zip -d /tmp/speakflow
-          cp -r /tmp/speakflow/*/. .
-          rm -rf /tmp/speakflow
-          rm -f SpeakFlow-v1-complete.zip
+          rm -rf app components lib
+          rm -f package.json tsconfig.json next.config.ts next-env.d.ts README.md
 
-      - name: Commit project files
+          mkdir -p /tmp/speakflow
+          unzip -o SpeakFlow-v1.1-natural-pause.zip -d /tmp/speakflow
+
+          cp -r /tmp/speakflow/speakflow/app .
+          cp -r /tmp/speakflow/speakflow/components .
+          cp -r /tmp/speakflow/speakflow/lib .
+          cp /tmp/speakflow/speakflow/package.json .
+          cp /tmp/speakflow/speakflow/tsconfig.json .
+          cp /tmp/speakflow/speakflow/next.config.ts .
+          cp /tmp/speakflow/speakflow/next-env.d.ts .
+          cp /tmp/speakflow/speakflow/README.md .
+
+          rm -f SpeakFlow-v1-complete.zip
+          rm -f SpeakFlow-v1.1-natural-pause.zip
+          rm -rf /tmp/speakflow
+
+      - name: Commit updated project
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Add SpeakFlow project files" || echo "Nothing to commit"
+          git commit -m "Update SpeakFlow to v1.1 natural pause" || echo "Nothing to commit"
           git push
