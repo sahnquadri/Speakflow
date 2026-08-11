@@ -57,6 +57,7 @@ export default function SpeakFlow() {
   const sessionStartedAt = useRef(0);
   const restartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recognitionRun = useRef(0);
 
   useEffect(() => {
     localStorage.setItem("speakflow-state", JSON.stringify(state));
@@ -87,30 +88,76 @@ export default function SpeakFlow() {
     setTranscript(combined);
   };
 
+  // Merge a newly-finalized speech segment without duplicating text.
+  // Mobile Chrome can repeat the tail of a previous recognition session when
+  // continuous recognition is restarted after a pause.
+  const appendFinalSegment = (existing: string, incoming: string) => {
+    const next = incoming.replace(/\s+/g, " ").trim();
+    if (!next) return existing;
+
+    const a = existing.replace(/\s+/g, " ").trim();
+    if (!a) return next;
+
+    const al = a.toLowerCase();
+    const nl = next.toLowerCase();
+
+    // Ignore an exact repeat or a segment already present in the transcript.
+    if (al === nl || al.includes(nl)) return a;
+
+    // If the new segment starts with words already at the end of the
+    // transcript, append only the non-overlapping part.
+    const aWords = a.split(" ");
+    const nWords = next.split(" ");
+    const max = Math.min(aWords.length, nWords.length);
+
+    for (let size = max; size >= 1; size--) {
+      const tail = aWords.slice(-size).join(" ").toLowerCase();
+      const head = nWords.slice(0, size).join(" ").toLowerCase();
+      if (tail === head) {
+        return `${a} ${nWords.slice(size).join(" ")}`.trim();
+      }
+    }
+
+    return `${a} ${next}`.trim();
+  };
+
   const startRecognition = () => {
     if (!supported || stopping.current) return;
+
     const C = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const r: Rec = new C();
+    const runId = ++recognitionRun.current;
+
     r.lang = "en-US";
     r.continuous = true;
     r.interimResults = true;
 
     r.onresult = (e: any) => {
+      // Ignore events from an older recognition instance after a restart.
+      if (runId !== recognitionRun.current || stopping.current) return;
+
       let interim = "";
+
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
         const text = result?.[0]?.transcript || "";
+
         if (result.isFinal) {
-          finalTranscript.current = `${finalTranscript.current} ${text}`.trim();
+          finalTranscript.current = appendFinalSegment(finalTranscript.current, text);
         } else {
+          // Interim text is temporary. Never append it to the permanent
+          // transcript because Chrome may resend/update it repeatedly.
           interim += text;
         }
       }
-      interimTranscript.current = interim;
+
+      interimTranscript.current = interim.replace(/\s+/g, " ").trim();
       renderTranscript();
     };
 
     r.onend = () => {
+      if (runId !== recognitionRun.current) return;
+
       if (stopping.current) {
         setReconnecting(false);
         setListening(false);
@@ -118,28 +165,39 @@ export default function SpeakFlow() {
       }
 
       const elapsed = Date.now() - sessionStartedAt.current;
+
       if (elapsed >= 90000) {
         stopping.current = true;
         setReconnecting(false);
         setListening(false);
         setSeconds(90);
+        interimTranscript.current = "";
         renderTranscript();
         return;
       }
 
-      // Mobile Chrome can end recognition after a pause. Restart it automatically
-      // so a normal thinking pause does not throw away the rest of the answer.
+      // Mobile Chrome may end recognition after a normal thinking pause.
+      // Restart it, but keep the already-finalized transcript and deduplicate
+      // any repeated tail returned by the new recognition instance.
       setReconnecting(true);
+
+      if (restartTimer.current) clearTimeout(restartTimer.current);
+
       restartTimer.current = setTimeout(() => {
-        if (!stopping.current) {
+        if (!stopping.current && runId === recognitionRun.current) {
           setReconnecting(false);
           startRecognition();
         }
-      }, 250);
+      }, 400);
     };
 
     r.onerror = (e: any) => {
-      const fatal = e?.error === "not-allowed" || e?.error === "service-not-allowed";
+      if (runId !== recognitionRun.current) return;
+
+      const fatal =
+        e?.error === "not-allowed" ||
+        e?.error === "service-not-allowed";
+
       if (fatal) {
         stopping.current = true;
         setListening(false);
@@ -148,6 +206,7 @@ export default function SpeakFlow() {
     };
 
     rec.current = r;
+
     try {
       r.start();
       setListening(true);
@@ -175,6 +234,7 @@ export default function SpeakFlow() {
 
   const stop = () => {
     stopping.current = true;
+    recognitionRun.current += 1;
     if (restartTimer.current) clearTimeout(restartTimer.current);
     if (timer.current) clearInterval(timer.current);
     rec.current?.stop();
@@ -224,9 +284,9 @@ export default function SpeakFlow() {
     setState(ns);
 
     const fb: string[] = [];
-    fb.push(a.words.length < 35 ? "Develop the idea a little further before finishing." : "Good continuity—you kept the thought moving.");
+    fb.push(a.words.length < 35 ? "Develop the idea a little further before finishing." : "Good continuity鈥攜ou kept the thought moving.");
     fb.push(a.fillers >= 4 ? "Replace some repeated fillers with a short silent pause." : "Filler use was manageable.");
-    if (a.self > 0) fb.push("Good self-repair—you kept communicating instead of freezing.");
+    if (a.self > 0) fb.push("Good self-repair鈥攜ou kept communicating instead of freezing.");
     fb.push(a.used.length ? `You activated ${a.used.length} target expression${a.used.length > 1 ? "s" : ""}.` : "Try to activate one target expression next time.");
     setFeedback(fb);
     setTask(nextTask(level));
@@ -245,44 +305,44 @@ export default function SpeakFlow() {
         <b className="badge">LEVEL {state.level}</b>
       </header>
 
-      <nav>{([['session', '🎙️ Session'], ['progress', '📈 Progress'], ['vocab', '📚 Vocabulary']] as const).map(([id, label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} key={id}>{label}</button>)}</nav>
+      <nav>{([['session', '馃帣锔� Session'], ['progress', '馃搱 Progress'], ['vocab', '馃摎 Vocabulary']] as const).map(([id, label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} key={id}>{label}</button>)}</nav>
 
       {tab === "session" && <section className="content">
         <div className="hero">
-          <small>LEVEL {state.level} · {task.mode.toUpperCase()}</small>
+          <small>LEVEL {state.level} 路 {task.mode.toUpperCase()}</small>
           <h1>{task.title}</h1>
           <p>{task.prompt}</p>
-          <button className="hear" onClick={() => speak(task.prompt)}>🔊 Hear prompt</button>
+          <button className="hear" onClick={() => speak(task.prompt)}>馃攰 Hear prompt</button>
         </div>
 
         <div className="card">
-          <b>🧠 Active vocabulary</b><span className="muted">Use 1–2 naturally</span>
+          <b>馃 Active vocabulary</b><span className="muted">Use 1鈥�2 naturally</span>
           <div className="chips">{(target.length ? target : state.vocabulary.filter((v) => v.status !== "mastered").slice(0, 3)).map((v) => <button className="chip" key={v.phrase} onClick={() => speak(`${v.phrase}. ${v.meaning}. Example: ${v.example}`)}>{v.phrase}</button>)}</div>
         </div>
 
         <div className="card">
           <div className="microw">
             <button className={'mic ' + (listening ? 'rec' : '')} onClick={listening ? stop : start}>
-              {listening ? '■' : '🎙️'}
+              {listening ? '鈻�' : '馃帣锔�'}
             </button>
             <div>
-              <b>{listening ? (reconnecting ? 'Reconnecting…' : 'Listening…') : 'Tap and speak'}</b>
-              <span>{supported ? (listening ? `Natural pauses are okay · ${seconds}s / 90s` : 'Speak naturally. Pause to think. You have up to 90 seconds.') : 'Use Chrome/Edge for voice recognition.'}</span>
+              <b>{listening ? (reconnecting ? 'Reconnecting鈥�' : 'Listening鈥�') : 'Tap and speak'}</b>
+              <span>{supported ? (listening ? `Natural pauses are okay 路 ${seconds}s / 90s` : 'Speak naturally. Pause to think. You have up to 90 seconds.') : 'Use Chrome/Edge for voice recognition.'}</span>
             </div>
           </div>
           <div className="transcript">{transcript || 'Your spoken words will appear here...'}</div>
-          <div className="actions"><button onClick={begin} className="secondary">Start / hear task</button><button onClick={submit} disabled={!transcript.trim() && !finalTranscript.current.trim()} className="primary">Finish answer →</button></div>
+          <div className="actions"><button onClick={begin} className="secondary">Start / hear task</button><button onClick={submit} disabled={!transcript.trim() && !finalTranscript.current.trim()} className="primary">Finish answer 鈫�</button></div>
         </div>
 
-        {feedback.length > 0 && <div className="feedback"><small>TARGETED FEEDBACK</small>{feedback.map((x, i) => <p key={i}>✓ {x}</p>)}<button onClick={begin} className="primary full">Next speaking task →</button></div>}
-        <div className="card rule"><b>How it works</b><span>Expose → Speak → Diagnose → Retry → Vary → Retrieve → Progress</span></div>
+        {feedback.length > 0 && <div className="feedback"><small>TARGETED FEEDBACK</small>{feedback.map((x, i) => <p key={i}>鉁� {x}</p>)}<button onClick={begin} className="primary full">Next speaking task 鈫�</button></div>}
+        <div className="card rule"><b>How it works</b><span>Expose 鈫� Speak 鈫� Diagnose 鈫� Retry 鈫� Vary 鈫� Retrieve 鈫� Progress</span></div>
       </section>}
 
       {tab === "progress" && <section className="content"><div className="hero"><small>YOUR TRAINING MAP</small><h1>Progress</h1><p>The goal is not perfect English. The goal is automatic, confident communication.</p></div><div className="stats"><div><b>{state.completed}</b><small>Sessions</small></div><div><b>{state.level}</b><small>Level</small></div><div><b>{state.vocabulary.filter((v) => v.status === "mastered").length}</b><small>Mastered</small></div></div><div className="card">{Object.entries(state.skills).map(([k, v]) => <div className="metric" key={k}><div><b>{k.replace(/([A-Z])/g, " $1")}</b><span>{v}%</span></div><div className="bar"><i style={{ width: `${v}%` }} /></div></div>)}<div className="metric"><div><b>Level progress</b><span>{progress}%</span></div><div className="bar"><i style={{ width: `${progress}%` }} /></div></div></div></section>}
 
-      {tab === "vocab" && <section className="content"><div className="hero"><small>ACTIVE VOCABULARY</small><h1>Words you can actually use</h1><p>Exposure alone isn’t mastery. Retrieve expressions later and use them in new situations.</p></div><div className="card list">{state.vocabulary.map((v) => <div className="vrow" key={v.phrase}><div><b>{v.phrase}</b><p>{v.meaning}</p><small>{v.example}</small></div><em>{v.status} · {v.uses}</em></div>)}</div></section>}
+      {tab === "vocab" && <section className="content"><div className="hero"><small>ACTIVE VOCABULARY</small><h1>Words you can actually use</h1><p>Exposure alone isn鈥檛 mastery. Retrieve expressions later and use them in new situations.</p></div><div className="card list">{state.vocabulary.map((v) => <div className="vrow" key={v.phrase}><div><b>{v.phrase}</b><p>{v.meaning}</p><small>{v.example}</small></div><em>{v.status} 路 {v.uses}</em></div>)}</div></section>}
 
-      <footer>SpeakFlow v1.1 · Natural pause capture · Progress saved on this device</footer>
+      <footer>SpeakFlow v1.1 路 Natural pause capture 路 Progress saved on this device</footer>
     </main>
   );
-}
+        }
