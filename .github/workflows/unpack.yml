@@ -1,0 +1,30 @@
+name: Unpack SpeakFlow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          mkdir -p /tmp/speakflow
+          unzip -o SpeakFlow-v1-complete.zip -d /tmp/speakflow
+          cp -r /tmp/speakflow/*/. .
+          rm -rf /tmp/speakflow
+          rm -f SpeakFlow-v1-complete.zip
+
+      - name: Commit project files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Add SpeakFlow project files" || echo "Nothing to commit"
+          git push
