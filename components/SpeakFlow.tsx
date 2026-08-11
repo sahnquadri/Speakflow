@@ -887,4 +887,44 @@ export default function SpeakFlow() {
               </div>
 
               <div className="bar">
+  <i style={{ width: `${progress}%` }} />
+</div>
+</div>
+</div>
+</section>}
+
+{tab === "vocab" && (
+  <section className="content">
+    <div className="hero">
+      <small>ACTIVE VOCABULARY</small>
+      <h1>Words you can actually use</h1>
+      <p>
+        Exposure alone isn’t mastery. Retrieve expressions later and use them
+        in new situations.
+      </p>
+    </div>
+
+    <div className="card list">
+      {state.vocabulary.map((v) => (
+        <div className="vrow" key={v.phrase}>
+          <div>
+            <b>{v.phrase}</b>
+            <p>{v.meaning}</p>
+            <small>{v.example}</small>
+          </div>
+          <em>
+            {v.status} · {v.uses}
+          </em>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
+
+<footer>
+  SpeakFlow v1.1 · Natural pause capture · Progress saved on this device
+</footer>
+</main>
+);
+}
               
