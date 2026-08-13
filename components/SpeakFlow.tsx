@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   initialState,
-  nextTask,
   type SessionState,
   type VocabularyItem,
 } from "@/lib/framework";
