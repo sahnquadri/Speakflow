@@ -7,7 +7,7 @@ import {
   type SessionState,
   type VocabularyItem,
 } from "@/lib/framework";
-
+import { getNextTask } from "@/lib/adaptive";
 type Rec = {
   start: () => void;
   stop: () => void;
