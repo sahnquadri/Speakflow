@@ -787,7 +787,7 @@ export default function SpeakFlow() {
           <div className="hero">
             <small>
               LEVEL {state.level} -{" "}
-              {task.mode.toUpperCase()}
+              {task.type.toUpperCase()}
             </small>
 
             <h1>
