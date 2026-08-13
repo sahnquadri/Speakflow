@@ -680,8 +680,23 @@ export default function SpeakFlow() {
     );
 
     setTask(
-      nextTask(level)
-    );
+  getNextTask({
+    level,
+    completed: newState.completed,
+    recentTaskIds: [task.id],
+    recentTypes: [task.type],
+    performance: {
+      continuity: analysis.continuity,
+      organization: analysis.organization,
+      naturalness: analysis.naturalness,
+      vocabulary: newState.skills.vocabulary,
+      words: analysis.words.length,
+      fillers: analysis.fillers,
+      usedVocabulary:
+        analysis.used.length,
+    },
+  })
+);
 
     setTarget([]);
 
