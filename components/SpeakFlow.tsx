@@ -93,7 +93,14 @@ export default function SpeakFlow() {
     useState<SessionState>(load);
 
   const [task, setTask] =
-    useState(() => nextTask(load().level));
+  useState(() =>
+    getNextTask({
+      level: load().level,
+      completed: load().completed,
+      recentTaskIds: [],
+      recentTypes: [],
+    })
+  );
 
   const [target, setTarget] =
     useState<VocabularyItem[]>([]);
