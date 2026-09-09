@@ -542,9 +542,19 @@ export default function SpeakFlow() {
     )
   ),
 });
+    
+const usedTargetVocabulary =
+  task.vocabulary.filter((phrase) =>
+    answer
+      .toLowerCase()
+      .includes(phrase.toLowerCase())
+  );
 
-    const vocabulary =
-      state.vocabulary.map(
+const vocabularyFeedback =
+  `Target vocabulary: ${usedTargetVocabulary.length}/${task.vocabulary.length} used`;
+    
+const vocabulary =
+    state.vocabulary.map(
         (v) => {
           const hit =
             analysis.used.some(
