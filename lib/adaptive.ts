@@ -81,35 +81,75 @@ function chooseType(
   const last = recent[recent.length - 1];
 
   const rotation: Record<
-    TaskType,
-    TaskType[]
-  > = {
-    opinion: [
-      "story",
-      "decision",
-      "situation",
-    ],
-    story: [
-      "decision",
-      "opinion",
-      "situation",
-    ],
-    decision: [
-      "situation",
-      "challenge",
-      "opinion",
-    ],
-    situation: [
-      "opinion",
-      "story",
-      "challenge",
-    ],
-    challenge: [
-      "story",
-      "decision",
-      "opinion",
-    ],
-  };
+  TaskType,
+  TaskType[]
+> = {
+  opinion: [
+    "story",
+    "comparison",
+    "debate",
+  ],
+
+  story: [
+    "description",
+    "decision",
+    "interview",
+  ],
+
+  decision: [
+    "problem-solving",
+    "situation",
+    "opinion",
+  ],
+
+  situation: [
+    "interview",
+    "problem-solving",
+    "story",
+  ],
+
+  challenge: [
+    "debate",
+    "explanation",
+    "decision",
+  ],
+
+  description: [
+    "story",
+    "comparison",
+    "explanation",
+  ],
+
+  explanation: [
+    "opinion",
+    "description",
+    "problem-solving",
+  ],
+
+  comparison: [
+    "decision",
+    "opinion",
+    "debate",
+  ],
+
+  "problem-solving": [
+    "situation",
+    "decision",
+    "explanation",
+  ],
+
+  interview: [
+    "story",
+    "opinion",
+    "situation",
+  ],
+
+  debate: [
+    "challenge",
+    "opinion",
+    "comparison",
+  ],
+};
 
   const choices =
     rotation[last];
