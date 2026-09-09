@@ -692,7 +692,7 @@ const vocabulary =
        label: "Vocabulary",
        value: vocabularyFeedback,
       },
-    ]);
+  ]);
 
     setTask(
   getNextTask({
