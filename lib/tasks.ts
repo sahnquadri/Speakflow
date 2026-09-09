@@ -239,6 +239,174 @@ export const TASK_BANK: SpeakingTask[] = [
       "maintain a balance",
     ],
   },
+
+    {
+    id: "description-001",
+    type: "description",
+    difficulty: 1,
+    title: "Describe your home",
+    prompt:
+      "Describe your home or room. What can you see, and what do you like about it?",
+    vocabulary: [
+      "there is",
+      "next to",
+      "my favorite part",
+    ],
+  },
+
+  {
+    id: "explanation-001",
+    type: "explanation",
+    difficulty: 2,
+    title: "Explain your daily routine",
+    prompt:
+      "Explain your usual daily routine from morning to night.",
+    vocabulary: [
+      "usually",
+      "after that",
+      "by the time",
+    ],
+  },
+
+  {
+    id: "comparison-001",
+    type: "comparison",
+    difficulty: 2,
+    title: "City or village",
+    prompt:
+      "Compare living in a city with living in a village. Which would you prefer?",
+    vocabulary: [
+      "compared with",
+      "whereas",
+      "I would rather",
+    ],
+  },
+
+  {
+    id: "problem-solving-001",
+    type: "problem-solving",
+    difficulty: 3,
+    title: "Late employee",
+    prompt:
+      "Your team member is regularly late for work, affecting the whole team. What would you do?",
+    vocabulary: [
+      "I would suggest",
+      "the best approach",
+      "deal with the problem",
+    ],
+  },
+
+  {
+    id: "interview-001",
+    type: "interview",
+    difficulty: 3,
+    title: "Tell me about yourself",
+    prompt:
+      "Imagine you are in a job interview. Introduce yourself and explain your experience, strengths, and career goals.",
+    vocabulary: [
+      "my background",
+      "one of my strengths",
+      "in the long term",
+    ],
+  },
+
+  {
+    id: "debate-001",
+    type: "debate",
+    difficulty: 4,
+    title: "Technology and jobs",
+    prompt:
+      "Some people believe technology will create more jobs than it destroys. Others disagree. Choose a position and defend it.",
+    vocabulary: [
+      "I strongly believe",
+      "on the contrary",
+      "as a result",
+    ],
+  },
+
+  {
+    id: "description-002",
+    type: "description",
+    difficulty: 4,
+    title: "Your ideal workplace",
+    prompt:
+      "Describe your ideal workplace. Talk about the environment, people, working style, and facilities.",
+    vocabulary: [
+      "ideally",
+      "a productive environment",
+      "I would prefer",
+    ],
+  },
+
+  {
+    id: "explanation-002",
+    type: "explanation",
+    difficulty: 5,
+    title: "Explain a useful skill",
+    prompt:
+      "Choose a skill you think everyone should learn. Explain why it is useful and how someone can learn it.",
+    vocabulary: [
+      "the reason why",
+      "step by step",
+      "put it into practice",
+    ],
+  },
+
+  {
+    id: "comparison-002",
+    type: "comparison",
+    difficulty: 5,
+    title: "Experience or education",
+    prompt:
+      "Compare practical experience with formal education. Which is more important for building a career?",
+    vocabulary: [
+      "in terms of",
+      "both have advantages",
+      "what matters is",
+    ],
+  },
+
+  {
+    id: "problem-solving-002",
+    type: "problem-solving",
+    difficulty: 6,
+    title: "Team disagreement",
+    prompt:
+      "Two important members of your team strongly disagree about how to complete a project. How would you resolve the situation?",
+    vocabulary: [
+      "find common ground",
+      "take into consideration",
+      "reach an agreement",
+    ],
+  },
+
+  {
+    id: "interview-002",
+    type: "interview",
+    difficulty: 6,
+    title: "Career change",
+    prompt:
+      "Imagine an interviewer asks why you want to change your career. Explain your reasons and what you hope to achieve.",
+    vocabulary: [
+      "make a transition",
+      "transferable skills",
+      "career growth",
+    ],
+  },
+
+  {
+    id: "debate-002",
+    type: "debate",
+    difficulty: 7,
+    title: "Should university be free?",
+    prompt:
+      "Argue whether university education should be free for everyone. Consider both the benefits and the possible problems.",
+    vocabulary: [
+      "from a broader perspective",
+      "public funding",
+      "access to education",
+    ],
+  },
 ];
 
 export function getTasksByDifficulty(
