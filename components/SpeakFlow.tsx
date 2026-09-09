@@ -532,8 +532,16 @@ export default function SpeakFlow() {
 
     if (!answer) return;
 
-    const analysis =
-      analyze(answer, state);
+    const analysis = analyze(answer, {
+  ...state,
+  vocabulary: state.vocabulary.filter((v) =>
+    task.vocabulary.some(
+      (phrase) =>
+        phrase.toLowerCase() ===
+        v.phrase.toLowerCase()
+    )
+  ),
+});
 
     const vocabulary =
       state.vocabulary.map(
