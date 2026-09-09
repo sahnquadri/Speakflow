@@ -687,10 +687,9 @@ const vocabulary =
         : "Try to activate one target expression next time."
     );
 
-    setFeedback({
-       label: "Vocabulary",
-       value: vocabularyFeedback,
-    });
+    setFeedback([
+       vocabularyFeedback,
+    ]);
 
     setTask(
   getNextTask({
