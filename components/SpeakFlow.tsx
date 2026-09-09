@@ -504,24 +504,19 @@ export default function SpeakFlow() {
     finalTranscript.current = "";
     interimTranscript.current = "";
 
-    setTarget(
-      [
-        ...state.vocabulary.filter(
-          (v) =>
-            v.status !==
-            "mastered"
-        ),
-      ]
-        .sort(
-          () =>
-            Math.random() -
-            0.5
+   setTarget(
+     task.vocabulary
+        .map((phrase) =>
+          state.vocabulary.find(
+            (v) =>
+              v.phrase.toLowerCase() ===
+              phrase.toLowerCase()
+          )
         )
-        .slice(0, 3)
-    );
-
-    speak(
-      `Here is your speaking task. ${task.prompt}`
+        .filter(
+          (v): v is VocabularyItem =>
+            Boolean(v)
+        )
     );
   };
 
