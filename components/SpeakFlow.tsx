@@ -688,7 +688,10 @@ const vocabulary =
     );
 
     setFeedback(
-      feedbackItems
+      {
+  label: "Vocabulary",
+  value: vocabularyFeedback,
+},
     );
 
     setTask(
