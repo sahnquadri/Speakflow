@@ -3,7 +3,13 @@ export type TaskType =
   | "story"
   | "decision"
   | "situation"
-  | "challenge";
+  | "challenge"
+  | "description"
+  | "explanation"
+  | "comparison"
+  | "problem-solving"
+  | "interview"
+  | "debate";
 
 export type Difficulty =
   | 1
